@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hi-Lo Counter</title>
+<style>
+:root{--bg:#0d3b24;--panel:#0a2b1b;--ink:#f3f1e6;--dim:#9fb8a8;--gold:#e8c35a;--red:#e2574c;--blue:#4c9be2;--grey:#7d8b84;--line:#1f5a3b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;user-select:none}
+#app{padding:10px}
+.top{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.title{font-weight:700;font-size:14px;letter-spacing:.5px;color:var(--gold);margin-right:auto}
+.top select,.top button{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;cursor:pointer}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.box{background:var(--panel);border-radius:10px;padding:8px;text-align:center}
+.box .lbl{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px}
+.box .val{font-size:34px;font-weight:800;line-height:1.1}
+.box.small .val{font-size:18px}
+.pos{color:#7ee08f}.neg{color:#ff8a80}.zero{color:var(--ink)}
+.hint{background:var(--panel);border-left:4px solid var(--gold);border-radius:8px;padding:7px 9px;font-size:13px;margin-bottom:8px}
+.btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.btns button{border:0;border-radius:12px;padding:14px 4px;font-size:20px;font-weight:800;color:#fff;cursor:pointer}
+.btns button small{display:block;font-size:11px;font-weight:600;opacity:.9;margin-top:2px}
+.lo{background:var(--blue)}.mid{background:var(--grey)}.hi{background:var(--red)}
+.btns button:active{transform:scale(.96)}
+.ranks{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px}
+.ranks button{background:#14492e;color:var(--ink);border:0;border-radius:7px;padding:7px 0;font-size:13px;font-weight:700;cursor:pointer}
+.row{display:flex;gap:6px;margin-top:8px}
+.row button{flex:1;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 4px;font-size:13px;cursor:pointer}
+.row button.on{background:var(--gold);color:#222;border-color:var(--gold)}
+.hidden-count .val.cnt{filter:blur(9px)}
+.keys{font-size:10.5px;color:var(--dim);margin-top:8px;line-height:1.4}
+.flash{animation:fl .35s}
+@keyframes fl{from{background:#2c6b4a}to{background:var(--panel)}}
+
+/* ---- strip layouts ---- */
+body.strip{overflow:hidden}
+body.strip #app{padding:4px;height:100%}
+body.strip .ranks,body.strip .keys,body.strip .hint,body.strip .box.small,body.strip .top select{display:none}
+body.strip .top{margin:0 0 4px}
+body.strip .btns button{padding:6px 4px;font-size:15px;border-radius:8px}
+body.strip .btns button small{display:none}
+body.strip .box{padding:2px 6px;border-radius:8px}
+body.strip .box .lbl{font-size:8px}
+body.strip .box .val{font-size:20px}
+body.strip .row button{padding:4px 2px;font-size:11px}
+body.mode-top #app{display:flex;flex-direction:row;align-items:center;gap:8px;flex-wrap:wrap;height:auto}
+body.mode-top .top{order:0;margin:0}
+body.mode-top .stats{order:1;display:flex;gap:6px;margin:0}
+body.mode-top .stats .box{flex:0 0 auto;min-width:86px}
+body.mode-top .btns{order:2;display:flex;gap:6px;margin:0}
+body.mode-top .row{order:3;display:flex;gap:6px;margin:0}
+body.mode-top .btns button,body.mode-top .row button{flex:0 0 auto;min-width:56px}
+body.strip .top button{display:none}
+body.strip .top #pop{display:inline-block}
+body.strip .title{display:none}
+body.mode-side #app{display:flex;flex-direction:column}
+body.mode-side .stats{display:flex;flex-direction:column;gap:4px;margin:0}
+body.mode-side .btns{display:flex;flex-direction:column;gap:4px;margin-top:4px;flex:1}
+body.mode-side .btns button{flex:1}
+body.mode-side .row{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+body.mode-mini #app{display:flex;flex-direction:column;gap:5px;padding:5px;height:auto}
+body.mode-mini .title,body.mode-mini .keys{display:none}
+body.mode-mini .top{margin:0;gap:4px}
+body.mode-mini .top select{display:block;flex:1;min-width:0}
+body.mode-mini .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:0}
+body.mode-mini .box{padding:3px 5px;min-width:0}
+body.mode-mini .box.small{display:block}
+body.mode-mini .hint{display:block}
+body.mode-mini .box .lbl{font-size:7px}
+body.mode-mini .box .val{font-size:17px}
+body.mode-mini .hint{font-size:10px;padding:4px 6px;margin:0}
+body.mode-mini .btns{display:flex;gap:5px;margin:0}
+body.mode-mini .btns button{flex:1;padding:8px 2px;font-size:16px;border-radius:10px}
+body.mode-mini .btns button small{font-size:8px}
+body.mode-mini .ranks{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:0}
+body.mode-mini .ranks button{padding:9px 0;font-size:12px}
+body.mode-mini .row{display:flex;gap:4px;margin:0}
+body.mode-mini .row button{flex:1;padding:6px 2px;font-size:11px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top">
+    <span class="title">HI-LO</span>
+    <select id="decks" title="Decks in shoe">
+      <option value="1">1 deck</option><option value="2">2 decks</option><option value="3">3 decks</option>
+      <option value="4">4 decks</option><option value="5">5 decks</option><option value="6">6 decks</option><option value="7">7 decks</option><option value="8" selected>8 decks</option>
+    </select>
+    <button id="popTop" title="Float as a strip across the top of your screen">Top strip</button>
+    <button id="popSide" title="Float as a strip down the side of your screen">Side strip</button>
+    <button id="popMini" title="Compact strip that fits a small window">Mini</button>
+    <button id="pop" title="Back to the full panel">Panel</button>
+  </div>
+  <div class="stats" id="stats">
+    <div class="box" id="rcBox"><div class="lbl">Running</div><div class="val cnt" id="rc">0</div></div>
+    <div class="box" id="tcBox"><div class="lbl">True</div><div class="val cnt" id="tc">0</div></div>
+    <div class="box small"><div class="lbl">Cards seen</div><div class="val" id="seen">0</div></div>
+    <div class="box small"><div class="lbl">Decks left</div><div class="val" id="left">6.0</div></div>
+  </div>
+  <div class="hint" id="hint">New shoe. Bet the minimum.</div>
+  <div class="btns">
+    <button class="lo" data-v="1">+1<small>2 to 6</small></button>
+    <button class="mid" data-v="0">0<small>7 8 9</small></button>
+    <button class="hi" data-v="-1">&minus;1<small>10 J Q K A</small></button>
+  </div>
+  <div class="ranks" id="ranks"></div>
+  <div class="row">
+    <button id="undo">Undo</button>
+    <button id="practice" title="Hide the count and test yourself">Practice</button>
+    <button id="check">Check me</button>
+    <button id="reset">New shoe</button>
+  </div>
+  <div class="keys">Keys: 2&ndash;9 cards, 0/T/J/Q/K = ten, A = ace, Left/Down/Right = +1/0/&minus;1, Z undo, P practice, N new shoe.</div>
+</div>
+<script>
+(function(){
+const KEY='hilo-counter-v1';
+const app=document.getElementById('app');
+let S=load()||{decks:8,hist:[],practice:false};
+const $=id=>document.getElementById(id);
+function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const rc=()=>S.hist.reduce((a,b)=>a+b,0);
+const decksLeft=()=>Math.max(0.5,Math.round(((S.decks*52-S.hist.length)/52)*2)/2);
+const tc=()=>rc()/decksLeft();
+function cls(el,v){el.classList.remove('pos','neg','zero');el.classList.add(v>0?'pos':v<0?'neg':'zero')}
+function hint(t){
+  const T=Math.floor(t);
+  if(S.hist.length>=S.decks*52) return 'Shoe finished. Tap New shoe.';
+  let bet,txt;
+  if(T<=0){bet='1 unit (minimum)';txt='House has the edge.'}
+  else if(T===1){bet='1 unit';txt='About even.'}
+  else if(T===2){bet='2 units';txt='Small edge to you.'}
+  else if(T===3){bet='4 units';txt='Take insurance. Stand 16 v 10.'}
+  else if(T===4){bet='6 units';txt='Take insurance. Stand 15 v 10.'}
+  else {bet='8 units';txt='Strong. Take insurance.'}
+  if(T<=-2) txt='Cold shoe. Minimum or sit out.';
+  return 'TC '+(T>0?'+':'')+T+': bet '+bet+'. '+txt;
+}
+function render(){
+  const r=rc(),t=tc();
+  $('decks').value=S.decks;
+  $('rc').textContent=(r>0?'+':'')+r;
+  $('tc').textContent=(t>0?'+':'')+(Math.round(t*10)/10).toFixed(1);
+  cls($('rc'),r);cls($('tc'),t);
+  $('seen').textContent=S.hist.length+' / '+S.decks*52;
+  $('left').textContent=decksLeft().toFixed(1);
+  $('hint').textContent=S.practice?'Practice mode: count in your head, then tap Check me.':hint(t);
+  app.classList.toggle('hidden-count',S.practice);
+  $('practice').classList.toggle('on',S.practice);
+  save();
+}
+function add(v){if(S.hist.length>=S.decks*52)return;S.hist.push(v);flash();render()}
+function flash(){const b=$('rcBox');b.classList.remove('flash');void b.offsetWidth;b.classList.add('flash')}
+function undo(){S.hist.pop();render()}
+function reset(){if(S.hist.length&&!confirm('Start a new shoe?'))return;S.hist=[];render()}
+function check(){
+  const g=prompt('What\'s your running count?');
+  if(g===null)return;
+  const r=rc(),ok=parseInt(g,10)===r;
+  alert(ok?'Spot on. Running count is '+r+'.':'Not quite. You said '+g+', it\'s '+r+' (true count '+tc().toFixed(1)+').');
+}
+const val=c=>('23456'.includes(c)?1:'789'.includes(c)?0:-1);
+['2','3','4','5','6','7','8','9','10','J','Q','K','A'].forEach(c=>{
+  const b=document.createElement('button');b.textContent=c;b.onclick=()=>add(val(c==='10'?'T':c));$('ranks').appendChild(b)});
+document.querySelectorAll('.btns button').forEach(b=>b.onclick=()=>add(parseInt(b.dataset.v,10)));
+$('undo').onclick=undo;$('reset').onclick=reset;$('check').onclick=check;
+$('practice').onclick=()=>{S.practice=!S.practice;render()};
+$('decks').onchange=e=>{S.decks=parseInt(e.target.value,10);render()};
+function onKey(e){
+  if(e.target.tagName==='SELECT')return;
+  const k=e.key.toUpperCase();
+  if('23456789'.includes(k)&&k.length===1)add(val(k));
+  else if(['0','T','J','Q','K','A'].includes(k))add(-1);
+  else if(e.key==='ArrowLeft')add(1);
+  else if(e.key==='ArrowDown')add(0);
+  else if(e.key==='ArrowRight')add(-1);
+  else if(k==='Z'||e.key==='Backspace')undo();
+  else if(k==='P'){S.practice=!S.practice;render()}
+  else if(k==='N')reset();
+  else return;
+  e.preventDefault();
+}
+document.addEventListener('keydown',onKey);
+function cssTextAll(){let out='';[...document.styleSheets].forEach(ss=>{try{out+=[...ss.cssRules].map(r=>r.cssText).join('')}catch(e){}});return out}
+let pipWin=null;
+function setMode(m){
+  S.mode=m;
+  document.body.className=m==='top'?'strip mode-top':m==='side'?'strip mode-side':m==='mini'?'strip mode-mini':'';
+  render();
+}
+async function popOut(mode){
+  if('documentPictureInPicture' in window && !pipWin){
+    try{
+      const win=await documentPictureInPicture.requestWindow({width:mode==='side'?120:mode==='mini'?412:(window.screen?screen.availWidth:900),height:mode==='side'?(window.screen?screen.availHeight:700):mode==='mini'?240:88});
+      pipWin=win;
+      const st=document.createElement('style');st.textContent=cssTextAll();win.document.head.appendChild(st);
+      win.document.body.className=clsBody(mode);
+      win.document.body.appendChild(app);
+      win.document.addEventListener('keydown',onKey);
+      document.querySelectorAll('.top button').forEach(b=>b.style.display='none');
+      win.addEventListener('pagehide',()=>{document.body.appendChild(app);document.querySelectorAll('.top button').forEach(b=>b.style.display='');pipWin=null;setMode('panel')});
+      render();return;
+    }catch(e){}
+  }
+  setMode(mode);
+}
+function clsBody(mode){return mode==='top'?'strip mode-top':mode==='side'?'strip mode-side':mode==='mini'?'strip mode-mini':''}
+// In a fresh popup the strip classes must apply from the start
+const q=new URLSearchParams(location.search);
+if(q.get('mode')==='top')document.body.className='strip mode-top';
+if(q.get('mode')==='side')document.body.className='strip mode-side';
+$('popTop').onclick=()=>popOut('top');
+$('popMini').onclick=()=>popOut('mini');
+$('popSide').onclick=()=>popOut('side');
+$('pop').onclick=()=>{if(pipWin){try{pipWin.close()}catch(e){};pipWin=null}setMode('panel');};
+if(S.mode&&S.mode!=='panel')setMode(S.mode);
+render();
+})();
+</script>
+</body>
+</html>
